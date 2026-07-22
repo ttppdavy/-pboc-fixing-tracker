@@ -65,12 +65,26 @@ def session() -> requests.Session:
     return s
 
 
-def get_text(s: requests.Session, url: str, *, attempts: int = 4, timeout: int = 25) -> str:
+def get_text(
+    s: requests.Session,
+    url: str,
+    *,
+    attempts: int = 4,
+    timeout: int = 25,
+    fresh: bool = False,
+) -> str:
     last: Exception | None = None
     for n in range(attempts):
         try:
             headers = {"User-Agent": random.choice(USER_AGENTS)}
-            r = s.get(url, headers=headers, timeout=timeout)
+            request_url = url
+            if fresh:
+                # InvestingLive's tag pages can be stale on GitHub's US runners.
+                # A no-cache request plus a unique query key forces current listings.
+                headers.update({"Cache-Control": "no-cache", "Pragma": "no-cache"})
+                sep = "&" if "?" in url else "?"
+                request_url = f"{url}{sep}_refresh={time.time_ns()}"
+            r = s.get(request_url, headers=headers, timeout=timeout)
             if r.status_code in (404, 410):
                 return ""
             r.raise_for_status()
@@ -132,13 +146,61 @@ def parse_article_date(s: requests.Session, url: str) -> str | None:
     return None
 
 
-def extract_articles(s: requests.Session, page_url: str) -> tuple[list[dict], bool]:
-    text = get_text(s, page_url)
+def extract_embedded_articles(text: str, page_url: str) -> list[dict]:
+    """Read article records from InvestingLive's streamed Next.js payload.
+
+    The homepage carries fresh articles in serialized page data even when the
+    equivalent tag listing served to a GitHub runner is stale.
+    """
+    def field(chunk: str, name: str) -> str | None:
+        marker = rf'\"{name}\":\"'
+        start = chunk.find(marker)
+        if start < 0:
+            return None
+        start += len(marker)
+        end = chunk.find(r'\"', start)
+        return chunk[start:end] if end >= 0 else None
+
+    out: list[dict] = []
+    title_marker = r'\"displayText\":\"'
+    for chunk in text.split(title_marker)[1:]:
+        title_end = chunk.find(r'\"')
+        if title_end < 0:
+            continue
+        title = html.unescape(chunk[:title_end])
+        if not (FORECAST_RE.search(title) or ACTUAL_RE.search(title)):
+            continue
+        # Each serialized article object is compact. Limiting the scan avoids
+        # accidentally borrowing fields from a later record if one is malformed.
+        article_chunk = chunk[:4000]
+        path = field(article_chunk, "path")
+        published_raw = field(article_chunk, "publishedUtc")
+        if not path or not published_raw:
+            continue
+        try:
+            path = path.replace(r"\/", "/")
+            published = date.fromisoformat(published_raw[:10]).isoformat()
+        except ValueError:
+            continue
+        # Serialized paths are site-root relative even though they omit "/".
+        out.append({"date": published, "title": title, "url": urljoin(page_url, "/" + path.lstrip("/"))})
+    return out
+
+
+def extract_articles(
+    s: requests.Session, page_url: str, *, fresh: bool = False
+) -> tuple[list[dict], bool]:
+    text = get_text(s, page_url, fresh=fresh)
     if not text:
         return [], False
     soup = BeautifulSoup(text, "lxml")
     out: list[dict] = []
     seen: set[tuple[str, str]] = set()
+    for item in extract_embedded_articles(text, page_url):
+        key = (item["title"], item["url"])
+        if key not in seen:
+            seen.add(key)
+            out.append(item)
     for a in soup.find_all("a", href=True):
         title = " ".join(a.stripped_strings)
         if not title or not (FORECAST_RE.search(title) or ACTUAL_RE.search(title)):
@@ -162,18 +224,23 @@ def extract_articles(s: requests.Session, page_url: str) -> tuple[list[dict], bo
 
 def crawl_investinglive(start: date, *, full: bool) -> dict[str, dict]:
     s = session()
-    # Both tags are used because the site changed taxonomy and pagination during the history.
-    bases = ["https://investinglive.com/Tag/cny", "https://investinglive.com/Tag/pboc"]
     max_pages = 260 if full else 8
+    # The homepage is a separate, faster-refreshed feed for current articles.
+    # Both tags remain necessary because taxonomy and pagination changed historically.
+    sources = [
+        ("https://investinglive.com", 1),
+        ("https://investinglive.com/Tag/cny", max_pages),
+        ("https://investinglive.com/Tag/pboc", max_pages),
+    ]
     records: dict[str, dict] = {}
-    for base in bases:
+    for base, source_pages in sources:
         empty_run = 0
-        for page in range(1, max_pages + 1):
+        for page in range(1, source_pages + 1):
             url = f"{base}/" if page == 1 else f"{base}/page/{page}/"
             try:
-                articles, has_next = extract_articles(s, url)
+                articles, has_next = extract_articles(s, url, fresh=page == 1)
             except Exception as exc:  # noqa: BLE001
-                logging.warning("tag page failed %s: %s", url, exc)
+                logging.warning("listing page failed %s: %s", url, exc)
                 empty_run += 1
                 if empty_run >= 8:
                     break
@@ -196,7 +263,9 @@ def crawl_investinglive(start: date, *, full: bool) -> dict[str, dict]:
                     rec["investinglive_actual"] = float(am.group(1))
                     rec["actual_article_estimate"] = float(am.group(2))
                     rec["actual_url"] = item["url"]
-            if page % 10 == 0:
+            if source_pages == 1:
+                logging.info("%s: found %s relevant articles", base, len(articles))
+            elif page % 10 == 0:
                 logging.info("%s: scanned %s pages, %s dates", base, page, len(records))
             if empty_run >= 8 or (not has_next and page > 20 and not full):
                 break
@@ -293,6 +362,9 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
         official_fix = official.get(d, old.official_fix)
         source = "chinamoney" if d in official else old.actual_source
         note = old.quality_note
+        forecast_url = est_rec.get("forecast_url", old.forecast_url)
+        if est_rec.get("reuters_estimate") is not None and note.startswith("forecast_article_missing;"):
+            note = ""
         if official_fix is None and est_rec.get("investinglive_actual") is not None:
             official_fix = est_rec["investinglive_actual"]
             source = "investinglive_fallback"
@@ -301,6 +373,7 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
             # Fallback only. Dedicated forecast article takes precedence because actual titles can contain typos.
             estimate = est_rec["actual_article_estimate"]
             note = "forecast_article_missing; estimate taken from actual article title"
+            forecast_url = est_rec.get("actual_url", forecast_url)
         deviation = None
         if estimate is not None and official_fix is not None:
             deviation = int(round((official_fix - estimate) * 10000))
@@ -309,7 +382,7 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
             reuters_estimate=estimate,
             official_fix=official_fix,
             deviation_points=deviation,
-            forecast_url=est_rec.get("forecast_url", old.forecast_url),
+            forecast_url=forecast_url,
             official_url="https://www.chinamoney.com.cn/chinese/bkccpr/",
             actual_source=source,
             quality_note=note,
