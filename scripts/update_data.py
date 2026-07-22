@@ -10,13 +10,14 @@ import logging
 import math
 import random
 import re
+import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 from zoneinfo import ZoneInfo
 
 import requests
@@ -212,41 +213,52 @@ def date_chunks(start: date, end: date, days: int = 330) -> Iterable[tuple[date,
 
 
 def fetch_chinamoney(start: date, end: date) -> dict[str, float]:
-    s = session()
+    """Fetch official USD/CNY fixing history from ChinaMoney.
+
+    ChinaMoney currently rejects the TLS fingerprint used by Python requests
+    with HTTP 403, and its endpoint rejects large page sizes. GitHub-hosted
+    runners include curl, whose TLS fingerprint is accepted by the public
+    endpoint, so use POST requests with the site's supported 10-row paging.
+    """
     out: dict[str, float] = {}
     endpoint = "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-ccpr/CcprHisNew"
     for chunk_start, chunk_end in date_chunks(start, end):
-        params = {
-            "startDate": chunk_start.isoformat(),
-            "endDate": chunk_end.isoformat(),
-            "currency": "USD/CNY",
-            "pageNum": 1,
-            "pageSize": 500,
-        }
-        headers = {
-            "User-Agent": random.choice(USER_AGENTS),
-            "Referer": "https://www.chinamoney.com.cn/chinese/bkccpr/",
-            "X-Requested-With": "XMLHttpRequest",
-        }
-        last: Exception | None = None
-        for attempt in range(5):
+        page_num = 1
+        page_total = 1
+        while page_num <= page_total:
+            params = {
+                "startDate": chunk_start.isoformat(),
+                "endDate": chunk_end.isoformat(),
+                "currency": "USD/CNY",
+                "pageNum": page_num,
+                "pageSize": 10,
+            }
+            url = f"{endpoint}?{urlencode(params)}"
             try:
-                r = s.get(endpoint, params=params, headers=headers, timeout=30)
-                r.raise_for_status()
-                payload = r.json()
-                if payload.get("head", {}).get("rep_code") != "200":
-                    raise RuntimeError(payload.get("head", {}).get("rep_message") or "bad rep_code")
-                for rec in payload.get("records", []):
-                    vals = rec.get("values") or []
-                    if vals and vals[0] not in (None, ""):
-                        out[rec["date"]] = float(str(vals[0]).replace(",", ""))
-                break
-            except Exception as exc:  # noqa: BLE001
-                last = exc
-                headers["User-Agent"] = random.choice(USER_AGENTS)
-                time.sleep(2 * (attempt + 1))
-        else:
-            raise RuntimeError(f"ChinaMoney failed {chunk_start}..{chunk_end}: {last}")
+                result = subprocess.run(
+                    [
+                        "curl", "--fail", "--silent", "--show-error",
+                        "--max-time", "40", "--retry", "3",
+                        "--retry-all-errors", "-X", "POST", url,
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                payload = json.loads(result.stdout)
+            except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+                detail = getattr(exc, "stderr", "") or str(exc)
+                raise RuntimeError(
+                    f"ChinaMoney failed {chunk_start}..{chunk_end} page {page_num}: {detail}"
+                ) from exc
+            if payload.get("head", {}).get("rep_code") != "200":
+                raise RuntimeError(payload.get("head", {}).get("rep_message") or "bad rep_code")
+            page_total = int(payload.get("data", {}).get("pageTotal") or 1)
+            for rec in payload.get("records", []):
+                vals = rec.get("values") or []
+                if vals and vals[0] not in (None, ""):
+                    out[rec["date"]] = float(str(vals[0]).replace(",", ""))
+            page_num += 1
     return out
 
 
