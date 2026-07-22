@@ -1,0 +1,79 @@
+[
+  {
+    "date": "2026-07-13",
+    "reuters_estimate": 6.785,
+    "official_fix": 6.7972,
+    "deviation_points": 122,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-14",
+    "reuters_estimate": 6.7927,
+    "official_fix": 6.799,
+    "deviation_points": 63,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-15",
+    "reuters_estimate": 6.7695,
+    "official_fix": 6.791,
+    "deviation_points": 215,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "forecast_article_preferred_over_actual_title_typo",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-16",
+    "reuters_estimate": 6.7577,
+    "official_fix": 6.7909,
+    "deviation_points": 332,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-17",
+    "reuters_estimate": 6.7734,
+    "official_fix": 6.7934,
+    "deviation_points": 200,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-20",
+    "reuters_estimate": 6.7821,
+    "official_fix": 6.7948,
+    "deviation_points": 127,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  },
+  {
+    "date": "2026-07-21",
+    "reuters_estimate": 6.7706,
+    "official_fix": 6.7917,
+    "deviation_points": 211,
+    "forecast_url": "https://investinglive.com/Tag/cny/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "seed_verified",
+    "retrieved_at": "2026-07-21T09:20:00+08:00"
+  }
+]
