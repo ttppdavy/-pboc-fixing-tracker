@@ -8,9 +8,9 @@ on:
         required: false
         default: "false"
   schedule:
-    # 01:20 UTC = 09:20 Beijing time. Beijing has no daylight-saving time.
-    - cron: "20 1 * * 1-5"
-
+    # 09:20 Beijing time. Beijing has no daylight-saving time.
+    - cron: "20 9 * * 1-5"
+      timezone: "Asia/Shanghai"
 permissions:
   contents: write
 
