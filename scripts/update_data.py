@@ -358,22 +358,30 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
     for d in sorted(dates):
         old = existing.get(d, Row(date=d))
         est_rec = estimates.get(d, {})
-        estimate = est_rec.get("reuters_estimate", old.reuters_estimate)
+        # Use the estimate quoted in the published fixing article as the
+        # authoritative Reuters estimate. The earlier forecast article can be
+        # malformed by InvestingLive's feed (for example, 6.7795 rendered as
+        # "6.9 ... estimate7795"), so it must never overwrite published data.
+        published_estimate = est_rec.get("actual_article_estimate")
+        estimate = (
+            published_estimate
+            if published_estimate is not None
+            else old.reuters_estimate
+        )
         official_fix = official.get(d, old.official_fix)
         source = "chinamoney" if d in official else old.actual_source
         note = old.quality_note
-        forecast_url = est_rec.get("forecast_url", old.forecast_url)
-        if est_rec.get("reuters_estimate") is not None and note.startswith("forecast_article_missing;"):
+        forecast_url = (
+            est_rec.get("actual_url", old.forecast_url)
+            if published_estimate is not None
+            else old.forecast_url
+        )
+        if published_estimate is not None and note.startswith("forecast_article_missing;"):
             note = ""
         if official_fix is None and est_rec.get("investinglive_actual") is not None:
             official_fix = est_rec["investinglive_actual"]
             source = "investinglive_fallback"
             note = "official_api_missing; using published actual article"
-        if estimate is None and est_rec.get("actual_article_estimate") is not None:
-            # Fallback only. Dedicated forecast article takes precedence because actual titles can contain typos.
-            estimate = est_rec["actual_article_estimate"]
-            note = "forecast_article_missing; estimate taken from actual article title"
-            forecast_url = est_rec.get("actual_url", forecast_url)
         deviation = None
         if estimate is not None and official_fix is not None:
             deviation = int(round((official_fix - estimate) * 10000))
