@@ -8,17 +8,27 @@ on:
         required: false
         default: "false"
   schedule:
-    # 09:20 Beijing time. Beijing has no daylight-saving time.
-    - cron: "20 9 * * 1-5"
+    # Multiple attempts reduce the impact of delayed or dropped scheduled events.
+    - cron: "20,35,50 9 * * 1-5"
       timezone: "Asia/Shanghai"
+    - cron: "5 10 * * 1-5"
+      timezone: "Asia/Shanghai"
+
+concurrency:
+  group: pboc-fixing-update
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: main
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -28,6 +38,7 @@ jobs:
         run: |
           EXTRA=""
           if [ "${{ github.event.inputs.full_backfill }}" = "true" ]; then EXTRA="--full"; fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then EXTRA="$EXTRA --skip-if-today-complete"; fi
           python scripts/update_data.py --start 2024-01-01 --wait-today $EXTRA
       - name: Commit changes
         run: |
