@@ -7,10 +7,6 @@ on:
         description: "Run full 2024-present backfill"
         required: false
         default: "false"
-  schedule:
-    # Temporary schedule test: 10:20, 10:25, and 10:30 Beijing time.
-    - cron: "20,25,30 10 * * 1-5"
-      timezone: "Asia/Shanghai"
 
 concurrency:
   group: pboc-fixing-update
@@ -36,7 +32,6 @@ jobs:
         run: |
           EXTRA=""
           if [ "${{ github.event.inputs.full_backfill }}" = "true" ]; then EXTRA="--full"; fi
-          if [ "${{ github.event_name }}" = "schedule" ]; then EXTRA="$EXTRA --skip-if-today-complete"; fi
           python scripts/update_data.py --start 2024-01-01 --wait-today $EXTRA
       - name: Commit changes
         run: |
