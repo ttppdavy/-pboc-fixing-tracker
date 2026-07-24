@@ -6142,120 +6142,120 @@
     "reuters_estimate": 6.7931,
     "official_fix": 6.7989,
     "deviation_points": 58,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-9-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-vs-estimate-at-6-7931/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-13",
     "reuters_estimate": 6.785,
     "official_fix": 6.7972,
     "deviation_points": 122,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-7850-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-vs-estimate-at-6-7850/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-14",
     "reuters_estimate": 6.7927,
     "official_fix": 6.799,
     "deviation_points": 63,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-9-reuters-estimate-0/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-central-rate-at-vs-estimate-at-6-7927/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-15",
-    "reuters_estimate": 6.7695,
+    "reuters_estimate": 6.7965,
     "official_fix": 6.791,
-    "deviation_points": 215,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-7695-reuters-estimate/",
+    "deviation_points": -55,
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-mid-point-today-at-6-7-vs-estimate-at-6-7965/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "forecast_article_preferred_over_actual_title_typo",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-16",
     "reuters_estimate": 6.7577,
     "official_fix": 6.7909,
     "deviation_points": 332,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-79-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-6-7-vs-estimate-at-6-7577/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-17",
     "reuters_estimate": 6.7734,
     "official_fix": 6.7934,
     "deviation_points": 200,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-9-reuters-estimate-1/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-vs-estimate-at-6-7734/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-20",
     "reuters_estimate": 6.7821,
     "official_fix": 6.7948,
     "deviation_points": 127,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-7821-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-6-7-vs-estimate-at-6-7821/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-21",
     "reuters_estimate": 6.7706,
     "official_fix": 6.7917,
     "deviation_points": 211,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-central-rate-at-6-7-vs-estimate-at-6-7706/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "seed_verified",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-22",
     "reuters_estimate": 6.7737,
     "official_fix": 6.7933,
     "deviation_points": 196,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-7737-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-mid-point-today-at-6-7933-vs-estimate-at-6-7737/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "",
-    "retrieved_at": "2026-07-23T12:42:22+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-23",
     "reuters_estimate": 6.7712,
     "official_fix": 6.7906,
     "deviation_points": 194,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-7-reuters-estimate/",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-6-7-vs-estimate-at-6-7712/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "",
-    "retrieved_at": "2026-07-24T10:27:37+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   },
   {
     "date": "2026-07-24",
-    "reuters_estimate": 6.9,
+    "reuters_estimate": 6.7795,
     "official_fix": 6.7939,
-    "deviation_points": -1061,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-is-expected-to-set-the-usd-cny-reference-rate-at-6-9-reuters-estimate7795",
+    "deviation_points": 144,
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-6-7-vs-estimate-at-6-7795",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "",
-    "retrieved_at": "2026-07-24T10:27:37+08:00"
+    "retrieved_at": "2026-07-24T10:36:14+08:00"
   }
 ]
