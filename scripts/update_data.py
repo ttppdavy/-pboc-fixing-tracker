@@ -377,7 +377,7 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
         deviation = None
         if estimate is not None and official_fix is not None:
             deviation = int(round((official_fix - estimate) * 10000))
-        out[d] = Row(
+        merged = Row(
             date=d,
             reuters_estimate=estimate,
             official_fix=official_fix,
@@ -386,8 +386,20 @@ def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: d
             official_url="https://www.chinamoney.com.cn/chinese/bkccpr/",
             actual_source=source,
             quality_note=note,
-            retrieved_at=now if (d in estimates or d in official) else old.retrieved_at,
+            retrieved_at=old.retrieved_at,
         )
+        tracked_fields = (
+            "reuters_estimate",
+            "official_fix",
+            "deviation_points",
+            "forecast_url",
+            "official_url",
+            "actual_source",
+            "quality_note",
+        )
+        if any(getattr(merged, field) != getattr(old, field) for field in tracked_fields):
+            merged.retrieved_at = now
+        out[d] = merged
     return out
 
 
@@ -456,16 +468,36 @@ def today_beijing() -> date:
     return datetime.now(TZ).date()
 
 
-def update(start: date, full: bool, wait_today: bool) -> None:
+def update(start: date, full: bool, wait_today: bool, skip_if_today_complete: bool) -> None:
     existing = load_existing()
     if len(existing) < 300:
         full = True
-    logging.info("mode=%s, existing rows=%s", "full" if full else "incremental", len(existing))
-    estimate_data = crawl_investinglive(start, full=full)
-    official = fetch_chinamoney(start, today_beijing())
+
+    today = today_beijing()
+    target = today.isoformat()
+    current = existing.get(target)
+    if (
+        skip_if_today_complete
+        and not full
+        and current
+        and current.reuters_estimate is not None
+        and current.official_fix is not None
+    ):
+        logging.info("today already complete; nothing to update")
+        return
+
+    fetch_start = start if full else max(start, today - timedelta(days=14))
+    logging.info(
+        "mode=%s, fetch range=%s..%s, existing rows=%s",
+        "full" if full else "incremental",
+        fetch_start,
+        today,
+        len(existing),
+    )
+    estimate_data = crawl_investinglive(fetch_start, full=full)
+    official = fetch_chinamoney(fetch_start, today)
     rows = merge_rows(existing, estimate_data, official)
     if wait_today and datetime.now(TZ).weekday() < 5:
-        target = today_beijing().isoformat()
         for attempt in range(4):
             r = rows.get(target)
             if r and r.reuters_estimate is not None and r.official_fix is not None:
@@ -486,6 +518,7 @@ def main() -> int:
     p.add_argument("--start", default="2024-01-01")
     p.add_argument("--full", action="store_true")
     p.add_argument("--wait-today", action="store_true")
+    p.add_argument("--skip-if-today-complete", action="store_true")
     p.add_argument("--render-only", action="store_true")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -493,7 +526,7 @@ def main() -> int:
     if args.render_only:
         render_dashboard(load_existing(), start)
         return 0
-    update(start, args.full, args.wait_today)
+    update(start, args.full, args.wait_today, args.skip_if_today_complete)
     return 0
 
 if __name__ == "__main__":
