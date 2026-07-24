@@ -8,10 +8,8 @@ on:
         required: false
         default: "false"
   schedule:
-    # Multiple attempts reduce the impact of delayed or dropped scheduled events.
-    - cron: "20,35,50 9 * * 1-5"
-      timezone: "Asia/Shanghai"
-    - cron: "5 10 * * 1-5"
+    # Temporary schedule test: 10:20, 10:25, and 10:30 Beijing time.
+    - cron: "20,25,30 10 * * 1-5"
       timezone: "Asia/Shanghai"
 
 concurrency:
