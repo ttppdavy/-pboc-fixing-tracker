@@ -144,6 +144,10 @@ def test_fxstreet_listing_and_article_description():
         content="The PBOC sets the rate at 6.7939, compared with the previous
         fix and 6.7795 Reuters estimate."></head></html>'''
     assert tracker.extract_fxstreet_estimate(article) == 6.7795
+    no_estimate = '''<html><head><meta name="description"
+        content="The PBOC sets the rate at 6.7928 compared with the previous
+        fixing of 6.7911."></head></html>'''
+    assert tracker.extract_fxstreet_estimate(no_estimate) is None
 
 
 def test_fxstreet_fallback_requires_matching_official_actual():

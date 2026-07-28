@@ -1,6 +1,11 @@
 name: Update PBOC fixing tracker
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "data/pboc_fixing.csv"
   workflow_dispatch:
     inputs:
       full_backfill:
@@ -30,9 +35,13 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Update data and dashboard
         run: |
-          EXTRA=""
-          if [ "${{ github.event.inputs.full_backfill }}" = "true" ]; then EXTRA="--full"; fi
-          python scripts/update_data.py --start 2024-01-01 --wait-today $EXTRA
+          if [ "${{ github.event_name }}" = "push" ]; then
+            python scripts/update_data.py --start 2024-01-01 --render-only
+          else
+            EXTRA=""
+            if [ "${{ github.event.inputs.full_backfill }}" = "true" ]; then EXTRA="--full"; fi
+            python scripts/update_data.py --start 2024-01-01 --wait-today $EXTRA
+          fi
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
