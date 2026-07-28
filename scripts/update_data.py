@@ -37,8 +37,22 @@ ACTUAL_RE = re.compile(
     r"PBOC.*?(?:sets?|set).*?USD\s*/?\s*CNY.*?(?:at|today\s+at)\s+([0-9]+(?:\.[0-9]+)?)\s*\(\s*vs\.?\s*estimate\s+at\s+([0-9]+(?:\.[0-9]+)?)",
     re.I,
 )
+FXSTREET_TITLE_RE = re.compile(
+    r"^PBOC\s+sets?\s+USD\s*/\s*CNY\s+reference\s+rate\s+at\s+"
+    r"([0-9]+(?:\.[0-9]+)?)\s+vs\.?\s+([0-9]+(?:\.[0-9]+)?)\s+previous\b",
+    re.I,
+)
+FXSTREET_ESTIMATE_RE = re.compile(
+    r"\b([0-9]+(?:\.[0-9]+)?)\s+Reuters\s+estimate\b",
+    re.I,
+)
 DATE_TEXT_RE = re.compile(r"\b([0-3]\d)/([01]\d)/(20\d{2})\b")
 DATE_URL_RE = re.compile(r"(?<!\d)(20\d{6})(?!\d)")
+FXSTREET_DATE_URL_RE = re.compile(r"-(20\d{6})\d{4}/?(?:[?#].*)?$")
+FXSTREET_SEARCH_URL = (
+    "https://www.fxstreet.com/search?"
+    + urlencode({"q": "PBOC sets USD/CNY reference rate at"})
+)
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
@@ -273,6 +287,80 @@ def crawl_investinglive(start: date, *, full: bool) -> dict[str, dict]:
     return records
 
 
+def extract_fxstreet_listing(text: str, page_url: str) -> list[dict]:
+    """Extract dated PBOC fixing articles from an FXStreet search page."""
+    soup = BeautifulSoup(text, "lxml")
+    out: list[dict] = []
+    seen: set[str] = set()
+    for anchor in soup.find_all("a", href=True):
+        title = " ".join(anchor.stripped_strings)
+        match = FXSTREET_TITLE_RE.search(title)
+        if not match:
+            continue
+        url = urljoin(page_url, anchor["href"])
+        if url in seen:
+            continue
+        date_match = FXSTREET_DATE_URL_RE.search(url)
+        if not date_match:
+            continue
+        try:
+            published = datetime.strptime(
+                date_match.group(1), "%Y%m%d"
+            ).date().isoformat()
+        except ValueError:
+            continue
+        seen.add(url)
+        out.append(
+            {
+                "date": published,
+                "actual": float(match.group(1)),
+                "title": title,
+                "url": url,
+            }
+        )
+    return out
+
+
+def extract_fxstreet_estimate(text: str) -> float | None:
+    """Read the Reuters estimate only from the article's own description."""
+    soup = BeautifulSoup(text, "lxml")
+    tag = soup.find("meta", attrs={"name": "description"})
+    description = html.unescape(tag.get("content", "")) if tag else ""
+    match = FXSTREET_ESTIMATE_RE.search(description)
+    return float(match.group(1)) if match else None
+
+
+def crawl_fxstreet(start: date) -> dict[str, dict]:
+    """Fetch recent FXStreet estimates as a strict secondary source."""
+    s = session()
+    try:
+        listing_text = get_text(s, FXSTREET_SEARCH_URL, fresh=True)
+    except Exception as exc:  # noqa: BLE001
+        logging.warning("FXStreet search failed: %s", exc)
+        return {}
+
+    records: dict[str, dict] = {}
+    for item in extract_fxstreet_listing(listing_text, FXSTREET_SEARCH_URL):
+        if item["date"] < start.isoformat():
+            continue
+        try:
+            article_text = get_text(s, item["url"])
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("FXStreet article failed %s: %s", item["url"], exc)
+            continue
+        estimate = extract_fxstreet_estimate(article_text)
+        if estimate is None:
+            logging.info("FXStreet article has no Reuters estimate: %s", item["url"])
+            continue
+        records[item["date"]] = {
+            "fxstreet_estimate": estimate,
+            "fxstreet_actual": item["actual"],
+            "fxstreet_url": item["url"],
+        }
+    logging.info("FXStreet fallback: found %s dated Reuters estimates", len(records))
+    return records
+
+
 def date_chunks(start: date, end: date, days: int = 330) -> Iterable[tuple[date, date]]:
     cur = start
     while cur <= end:
@@ -351,33 +439,73 @@ def load_existing() -> dict[str, Row]:
     return rows
 
 
-def merge_rows(existing: dict[str, Row], estimates: dict[str, dict], official: dict[str, float]) -> dict[str, Row]:
+def merge_rows(
+    existing: dict[str, Row],
+    estimates: dict[str, dict],
+    official: dict[str, float],
+    fxstreet_estimates: dict[str, dict] | None = None,
+) -> dict[str, Row]:
     now = datetime.now(TZ).isoformat(timespec="seconds")
-    dates = set(existing) | set(estimates) | set(official)
+    fxstreet_estimates = fxstreet_estimates or {}
+    dates = set(existing) | set(estimates) | set(official) | set(fxstreet_estimates)
     out: dict[str, Row] = {}
     for d in sorted(dates):
         old = existing.get(d, Row(date=d))
         est_rec = estimates.get(d, {})
+        official_fix = official.get(d, old.official_fix)
         # Use the estimate quoted in the published fixing article as the
         # authoritative Reuters estimate. The earlier forecast article can be
         # malformed by InvestingLive's feed (for example, 6.7795 rendered as
         # "6.9 ... estimate7795"), so it must never overwrite published data.
         published_estimate = est_rec.get("actual_article_estimate")
+        fxstreet_rec = fxstreet_estimates.get(d, {})
+        fxstreet_estimate = None
+        if (
+            published_estimate is None
+            and old.reuters_estimate is None
+            and fxstreet_rec.get("fxstreet_estimate") is not None
+        ):
+            fxstreet_actual = fxstreet_rec.get("fxstreet_actual")
+            if (
+                official_fix is not None
+                and fxstreet_actual is not None
+                and math.isclose(fxstreet_actual, official_fix, abs_tol=0.00005)
+            ):
+                fxstreet_estimate = fxstreet_rec["fxstreet_estimate"]
+            else:
+                logging.warning(
+                    "rejecting FXStreet estimate for %s: article actual=%s official=%s",
+                    d,
+                    fxstreet_actual,
+                    official_fix,
+                )
         estimate = (
             published_estimate
             if published_estimate is not None
-            else old.reuters_estimate
+            else (
+                old.reuters_estimate
+                if old.reuters_estimate is not None
+                else fxstreet_estimate
+            )
         )
-        official_fix = official.get(d, old.official_fix)
         source = "chinamoney" if d in official else old.actual_source
         note = old.quality_note
         forecast_url = (
             est_rec.get("actual_url", old.forecast_url)
             if published_estimate is not None
-            else old.forecast_url
+            else (
+                fxstreet_rec.get("fxstreet_url", old.forecast_url)
+                if fxstreet_estimate is not None
+                else old.forecast_url
+            )
         )
-        if published_estimate is not None and note.startswith("forecast_article_missing;"):
+        if published_estimate is not None and (
+            note.startswith("forecast_article_missing;")
+            or note.startswith("investinglive_estimate_missing;")
+        ):
             note = ""
+        elif fxstreet_estimate is not None:
+            note = "investinglive_estimate_missing; using FXStreet Reuters estimate"
         if official_fix is None and est_rec.get("investinglive_actual") is not None:
             official_fix = est_rec["investinglive_actual"]
             source = "investinglive_fallback"
@@ -504,7 +632,19 @@ def update(start: date, full: bool, wait_today: bool, skip_if_today_complete: bo
     )
     estimate_data = crawl_investinglive(fetch_start, full=full)
     official = fetch_chinamoney(fetch_start, today)
-    rows = merge_rows(existing, estimate_data, official)
+    missing_estimate_dates = {
+        d
+        for d in official
+        if d >= fetch_start.isoformat()
+        and estimate_data.get(d, {}).get("actual_article_estimate") is None
+        and (existing.get(d) is None or existing[d].reuters_estimate is None)
+    }
+    fxstreet_data: dict[str, dict] = {}
+    if missing_estimate_dates:
+        fxstreet_data = crawl_fxstreet(
+            date.fromisoformat(min(missing_estimate_dates))
+        )
+    rows = merge_rows(existing, estimate_data, official, fxstreet_data)
     if wait_today and datetime.now(TZ).weekday() < 5:
         for attempt in range(4):
             r = rows.get(target)
@@ -514,7 +654,14 @@ def update(start: date, full: bool, wait_today: bool, skip_if_today_complete: bo
             time.sleep(120)
             estimate_data.update(crawl_investinglive(today_beijing() - timedelta(days=5), full=False))
             official.update(fetch_chinamoney(today_beijing() - timedelta(days=5), today_beijing()))
-            rows = merge_rows(rows, estimate_data, official)
+            if (
+                estimate_data.get(target, {}).get("actual_article_estimate") is None
+                and (rows.get(target) is None or rows[target].reuters_estimate is None)
+            ):
+                fxstreet_data.update(
+                    crawl_fxstreet(today_beijing() - timedelta(days=5))
+                )
+            rows = merge_rows(rows, estimate_data, official, fxstreet_data)
     save_csv(rows)
     render_dashboard(rows, start)
     complete = [r for r in rows.values() if r.reuters_estimate is not None and r.official_fix is not None]
