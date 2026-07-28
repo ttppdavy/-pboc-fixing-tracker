@@ -6263,10 +6263,10 @@
     "reuters_estimate": 6.7709,
     "official_fix": 6.7911,
     "deviation_points": 202,
-    "forecast_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "forecast_url": "",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
-    "quality_note": "2026-07-27T09:16:36+08:00",
+    "quality_note": "",
     "retrieved_at": "2026-07-28T13:29:36+08:00"
   },
   {
@@ -6274,10 +6274,10 @@
     "reuters_estimate": 6.7719,
     "official_fix": 6.7928,
     "deviation_points": 209,
-    "forecast_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "forecast_url": "",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
-    "quality_note": "2026-07-28T09:16:40+08:00",
+    "quality_note": "",
     "retrieved_at": "2026-07-28T13:29:36+08:00"
   }
 ]
