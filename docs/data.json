@@ -6279,5 +6279,16 @@
     "actual_source": "chinamoney",
     "quality_note": "",
     "retrieved_at": "2026-07-28T13:29:36+08:00"
+  },
+  {
+    "date": "2026-07-29",
+    "reuters_estimate": 6.764,
+    "official_fix": 6.7899,
+    "deviation_points": 259,
+    "forecast_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "official_url": "chinamoney",
+    "actual_source": "",
+    "quality_note": "2026-07-29T09:16:32+08:00",
+    "retrieved_at": null
   }
 ]
