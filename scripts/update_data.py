@@ -372,10 +372,10 @@ def date_chunks(start: date, end: date, days: int = 330) -> Iterable[tuple[date,
 def fetch_chinamoney(start: date, end: date) -> dict[str, float]:
     """Fetch official USD/CNY fixing history from ChinaMoney.
 
-    ChinaMoney currently rejects the TLS fingerprint used by Python requests
-    with HTTP 403, and its endpoint rejects large page sizes. GitHub-hosted
-    runners include curl, whose TLS fingerprint is accepted by the public
-    endpoint, so use POST requests with the site's supported 10-row paging.
+    ChinaMoney currently rejects the TLS fingerprint used by Python requests,
+    and its endpoint rejects large page sizes. Use curl with browser-like
+    headers and the site's supported 10-row paging. The headers also reduce
+    intermittent WAF rejections of bare requests from hosted runners.
     """
     out: dict[str, float] = {}
     endpoint = "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-ccpr/CcprHisNew"
@@ -394,19 +394,34 @@ def fetch_chinamoney(start: date, end: date) -> dict[str, float]:
             try:
                 result = subprocess.run(
                     [
-                        "curl", "--fail", "--silent", "--show-error",
-                        "--max-time", "40", "--retry", "3",
-                        "--retry-all-errors", "-X", "POST", url,
+                        "curl", "--fail-with-body", "--silent", "--show-error",
+                        "--compressed", "--max-time", "40", "--retry", "3",
+                        "--retry-all-errors", "--retry-delay", "3",
+                        "--header", f"User-Agent: {random.choice(USER_AGENTS)}",
+                        "--header", "Referer: https://www.chinamoney.com.cn/chinese/bkccpr/",
+                        "--header", "Accept: application/json, text/plain, */*",
+                        "--header", "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8",
+                        "-X", "POST", url,
                     ],
                     check=True,
                     capture_output=True,
                     text=True,
                 )
-                payload = json.loads(result.stdout)
-            except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-                detail = getattr(exc, "stderr", "") or str(exc)
+            except subprocess.CalledProcessError as exc:
+                stderr = (exc.stderr or "").strip()
+                body = (exc.stdout or "").strip()
+                detail_parts = [part for part in (stderr, body[:500]) if part]
+                detail = " | ".join(detail_parts) or str(exc)
                 raise RuntimeError(
                     f"ChinaMoney failed {chunk_start}..{chunk_end} page {page_num}: {detail}"
+                ) from exc
+            try:
+                payload = json.loads(result.stdout)
+            except json.JSONDecodeError as exc:
+                response = result.stdout.strip()[:500]
+                raise RuntimeError(
+                    f"ChinaMoney returned non-JSON data for "
+                    f"{chunk_start}..{chunk_end} page {page_num}: {response}"
                 ) from exc
             if payload.get("head", {}).get("rep_code") != "200":
                 raise RuntimeError(payload.get("head", {}).get("rep_message") or "bad rep_code")
@@ -417,6 +432,18 @@ def fetch_chinamoney(start: date, end: date) -> dict[str, float]:
                     out[rec["date"]] = float(str(vals[0]).replace(",", ""))
             page_num += 1
     return out
+
+
+def fetch_chinamoney_safe(start: date, end: date) -> dict[str, float]:
+    """Keep an update running when ChinaMoney is temporarily unavailable."""
+    try:
+        return fetch_chinamoney(start, end)
+    except RuntimeError as exc:
+        logging.warning(
+            "ChinaMoney unavailable; continuing with published article fallbacks: %s",
+            exc,
+        )
+        return {}
 
 
 def load_existing() -> dict[str, Row]:
@@ -634,7 +661,7 @@ def update(start: date, full: bool, wait_today: bool, skip_if_today_complete: bo
         len(existing),
     )
     estimate_data = crawl_investinglive(fetch_start, full=full)
-    official = fetch_chinamoney(fetch_start, today)
+    official = fetch_chinamoney_safe(fetch_start, today)
     missing_estimate_dates = {
         d
         for d in official
@@ -656,7 +683,12 @@ def update(start: date, full: bool, wait_today: bool, skip_if_today_complete: bo
             logging.info("today incomplete; retry %s/4", attempt + 1)
             time.sleep(120)
             estimate_data.update(crawl_investinglive(today_beijing() - timedelta(days=5), full=False))
-            official.update(fetch_chinamoney(today_beijing() - timedelta(days=5), today_beijing()))
+            official.update(
+                fetch_chinamoney_safe(
+                    today_beijing() - timedelta(days=5),
+                    today_beijing(),
+                )
+            )
             if (
                 estimate_data.get(target, {}).get("actual_article_estimate") is None
                 and (rows.get(target) is None or rows[target].reuters_estimate is None)

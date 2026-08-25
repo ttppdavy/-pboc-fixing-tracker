@@ -1,4 +1,7 @@
 import importlib.util
+import json
+import subprocess
+from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -203,3 +206,60 @@ def test_investinglive_published_estimate_wins_over_fxstreet():
     assert row.reuters_estimate == 6.7796
     assert row.forecast_url == "https://investinglive.com/example"
     assert row.quality_note == ""
+
+
+def test_chinamoney_curl_uses_browser_headers(monkeypatch):
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        payload = {
+            "head": {"rep_code": "200"},
+            "data": {"pageTotal": 1},
+            "records": [{"date": "2026-08-25", "values": ["6.7852"]}],
+        }
+        return subprocess.CompletedProcess(command, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(tracker.subprocess, "run", fake_run)
+    result = tracker.fetch_chinamoney(date(2026, 8, 25), date(2026, 8, 25))
+
+    assert result == {"2026-08-25": 6.7852}
+    command, kwargs = calls[0]
+    joined = " ".join(command)
+    assert "--fail-with-body" in command
+    assert "User-Agent:" in joined
+    assert "Referer: https://www.chinamoney.com.cn/chinese/bkccpr/" in joined
+    assert "Accept: application/json, text/plain, */*" in joined
+    assert kwargs == {"check": True, "capture_output": True, "text": True}
+
+
+def test_chinamoney_failure_continues_with_empty_result(monkeypatch, caplog):
+    def fail(_start, _end):
+        raise RuntimeError("HTTP 403")
+
+    monkeypatch.setattr(tracker, "fetch_chinamoney", fail)
+    result = tracker.fetch_chinamoney_safe(
+        date(2026, 8, 25), date(2026, 8, 25)
+    )
+
+    assert result == {}
+    assert "continuing with published article fallbacks" in caplog.text
+
+
+def test_investinglive_actual_is_used_when_chinamoney_is_unavailable():
+    estimates = {
+        "2026-08-25": {
+            "actual_article_estimate": 6.7219,
+            "investinglive_actual": 6.7852,
+            "actual_url": "https://investinglive.com/example",
+        }
+    }
+    row = tracker.merge_rows({}, estimates, {})["2026-08-25"]
+
+    assert row.reuters_estimate == 6.7219
+    assert row.official_fix == 6.7852
+    assert row.deviation_points == 633
+    assert row.actual_source == "investinglive_fallback"
+    assert row.quality_note == (
+        "official_api_missing; using published actual article"
+    )
