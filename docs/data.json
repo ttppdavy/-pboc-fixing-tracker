@@ -6725,10 +6725,21 @@
     "reuters_estimate": 6.6971,
     "official_fix": 6.7468,
     "deviation_points": 497,
-    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-mid-point-today-at-6-7498-vs-estimate-at-6-6971",
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-mid-point-today-at-6-7498-vs-estimate-at-6-6971/",
     "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
     "actual_source": "chinamoney",
     "quality_note": "",
-    "retrieved_at": "2026-09-23T09:16:34+08:00"
+    "retrieved_at": "2026-09-24T09:16:31+08:00"
+  },
+  {
+    "date": "2026-09-24",
+    "reuters_estimate": 6.7184,
+    "official_fix": 6.7489,
+    "deviation_points": 305,
+    "forecast_url": "https://www.fxstreet.com/news/pboc-sets-usd-cny-reference-rate-at-67489-vs-67468-previous-202609240115",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "investinglive_estimate_missing; using FXStreet Reuters estimate",
+    "retrieved_at": "2026-09-24T09:16:31+08:00"
   }
 ]
