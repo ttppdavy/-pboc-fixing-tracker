@@ -6884,5 +6884,16 @@
     "actual_source": "chinamoney",
     "quality_note": "",
     "retrieved_at": "2026-10-22T09:16:47+08:00"
+  },
+  {
+    "date": "2026-10-23",
+    "reuters_estimate": 6.6758,
+    "official_fix": 6.718,
+    "deviation_points": 422,
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-reference-rate-for-today-at-6-vs-estimate-at-6-6758/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "",
+    "retrieved_at": "2026-10-23T09:16:53+08:00"
   }
 ]
