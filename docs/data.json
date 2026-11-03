@@ -6961,5 +6961,16 @@
     "actual_source": "chinamoney",
     "quality_note": "",
     "retrieved_at": "2026-11-02T09:16:39+08:00"
+  },
+  {
+    "date": "2026-11-03",
+    "reuters_estimate": 6.6489,
+    "official_fix": 6.715,
+    "deviation_points": 661,
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-central-rate-at-6-7150-vs-estimate-at-6-6489/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "",
+    "retrieved_at": "2026-11-03T09:16:33+08:00"
   }
 ]
