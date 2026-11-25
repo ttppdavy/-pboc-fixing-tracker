@@ -7126,5 +7126,16 @@
     "actual_source": "chinamoney",
     "quality_note": "",
     "retrieved_at": "2026-11-24T09:16:35+08:00"
+  },
+  {
+    "date": "2026-11-25",
+    "reuters_estimate": 6.6559,
+    "official_fix": 6.7088,
+    "deviation_points": 529,
+    "forecast_url": "https://investinglive.com/central-banks/pboc-sets-usd-cny-mid-point-today-at-6-7088-vs-estimate-at-6-6559/",
+    "official_url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+    "actual_source": "chinamoney",
+    "quality_note": "",
+    "retrieved_at": "2026-11-25T09:19:05+08:00"
   }
 ]
